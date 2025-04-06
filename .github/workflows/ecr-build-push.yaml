@@ -1,0 +1,115 @@
+name: ECR build-push and applying tf-stack
+
+on: 
+  workflow_call:
+    inputs:
+      ecr-repo-name:
+        type: string
+        required: true
+      values-file:
+        type: string
+        required: true
+    secrets:
+      region:
+        required: true
+      github_pat:
+        required: true
+      
+jobs:
+  Apply-tf-infrastructure:
+    runs-on: ubuntu-latest
+ 
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout primary repo
+        uses: actions/checkout@v4
+
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: org-548/infra
+          path: infra
+          token: ${{ secrets.github_pat }}
+
+      - name: Setup Terraform CLI
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::637423489195:role/role-for-github-oidc
+          aws-region: ${{ secrets.region }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.32.3'
+        id: install    
+
+      - name: Git Setup  
+        shell: bash
+        run: |
+          echo "Git setup"
+          pwd
+          git config --global user.name 'Tereza'
+          git config --global user.email 'bisharyant@gmail.com'
+
+      - name: Apply Terraform infrastructure
+        id: get-output
+        working-directory: infra/terraform
+        continue-on-error: true
+        run: |
+          terraform init
+          terraform plan
+          terraform apply --auto-approve | tail -n 11 >> out.txt
+          echo "error-out=$(head -n 1 out.txt)" >> $GITHUB_OUTPUT
+
+      - name: Reapply terraform code
+        working-directory: infra/terraform
+        if: contains("${{ steps.get-output.outputs.error-out}}", 'Not enough list items')
+        run: |
+          terraform apply --auto-approve
+
+      - name: Get short SHA
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV  
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2      
+
+      - name: Build, tag and push image to AWS ECR
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          REPOSITORY: ${{ inputs.ecr-repo-name }}
+          IMAGE_TAG: ${{ env.SHORT_SHA }}
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG  
+
+      - name: Update tag in appropriate values.yaml file
+        working-directory: infra/charts/values
+        run: |
+          echo ${{ env.SHORT_SHA }}
+          sed -E -i'' "s/(.*tag: ).*/\1${{ env.SHORT_SHA }}/" '${{ inputs.values-file }}'
+
+      - name: Commit and push changes without trigger
+        shell: bash
+        working-directory: infra/charts/values
+        env:
+          GITHUB_TOKEN: ${{ secrets.github_pat }}
+          COMMIT_MESSAGE: "Update image-tag with ${{ env.SHORT_SHA }}"
+        run: |
+          if [[ `git status --porcelain --untracked-files=no` ]]; then
+            echo "Commit and push to second repo"
+            git add .
+            git commit -m "${{ env.COMMIT_MESSAGE }}"
+            git push
+          else
+            echo "No changes"
+            exit 0
+          fi
+
+          
