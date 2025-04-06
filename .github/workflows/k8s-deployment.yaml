@@ -3,8 +3,10 @@ name: App deploymnet with Kubernetes
 on: 
   workflow_call:
     secrets:
-      region:
+      github_pat:
         required: true
+      region:
+        required: true  
       
 jobs:
   Apply-kubernetes-stack:
@@ -15,6 +17,36 @@ jobs:
       contents: read
 
     steps:
+      - name: Checkout primary repo
+        uses: actions/checkout@v4
+
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: org-548/infra
+          path: infra
+          token: ${{ secrets.github_pat }}
+          
+      - name: Git Setup  
+        shell: bash
+        run: |
+          echo "Git setup"
+          pwd
+          git config --global user.name 'Tereza'
+          git config --global user.email 'bisharyant@gmail.com'    
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::637423489195:role/role-for-github-oidc
+          aws-region: ${{ secrets.region }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.32.3'
+        id: install    
+          
       - name: Udpate kubeconfig
         run: aws eks update-kubeconfig --region ${{ secrets.region }} --name first-eks
 
@@ -29,7 +61,15 @@ jobs:
           mv helmwave /usr/local/bin/
 
       - name: Helmwave build/up
+        id: get-hw-output
+        continue-on-error: true
         working-directory: infra/charts
         run: |
-          helmwave up --build --kubedog
+          helmwave up --build --kubedog | tail -n 6 >> helmwave.out
+          diff helmwave.out error.txt
+          if [[ $? -eq 0 ]]; then
+            echo "Expected temporary error: Continue >>>"
+          else
+            exit 1
+            
       
