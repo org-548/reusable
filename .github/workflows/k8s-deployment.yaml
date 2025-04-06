@@ -1,0 +1,35 @@
+name: App deploymnet with Kubernetes
+
+on: 
+  workflow_call:
+    secrets:
+      region:
+        required: true
+      
+jobs:
+  Apply-kubernetes-stack:
+    runs-on: ubuntu-latest
+ 
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Udpate kubeconfig
+        run: aws eks update-kubeconfig --region ${{ secrets.region }} --name first-eks
+
+      - name: Ingress controller deployment
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.1/deploy/static/provider/cloud/deploy.yaml
+
+      - name: Setup Helmwave
+        run: |
+          export VERSION=0.19.3
+          wget -c https://github.com/helmwave/helmwave/releases/download/v$VERSION/helmwave_${VERSION}_linux_amd64.tar.gz -O - | tar -xz
+          mv helmwave /usr/local/bin/
+
+      - name: Helmwave build/up
+        working-directory: infra/charts
+        run: |
+          helmwave up --build --kubedog
+      
