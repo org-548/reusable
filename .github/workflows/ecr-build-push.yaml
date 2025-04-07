@@ -21,17 +21,17 @@ on:
 jobs:
   Apply-tf-infrastructure:
     runs-on: ubuntu-latest
- 
-    #permissions:
-      #id-token: write
-      #contents: read
 
     steps:
-      - name: Debug
-        if: ${{ inputs.app_unit }} == client
-        run: echo "App-unit is client"
-      - name: Checkout primary repo
+      - name: Checkout primary repo for server unit
+        if: ${{ inputs.app_unit }} != "client"
         uses: actions/checkout@v4
+
+      - name: Checkout primary repo for client unit
+        if: ${{ inputs.app_unit }} == "client"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.sha }}    
 
       - name: Checkout target repo
         uses: actions/checkout@v4
@@ -43,7 +43,6 @@ jobs:
       - name: Git Setup  
         shell: bash
         run: |
-          exit 1
           echo "Git setup"
           pwd
           git config --global user.name 'Tereza'
@@ -102,7 +101,13 @@ jobs:
         run: |
           echo ${{ env.SHORT_SHA }}
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
-          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG  
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+      - name: Unset variable value and delete .html file
+        if: ${{ inputs.app_unit }} == "client"
+        run: |
+          unset API_URL
+          rm index.html    
 
       - name: Update tag in appropriate values.yaml file
         working-directory: infra/charts/values
