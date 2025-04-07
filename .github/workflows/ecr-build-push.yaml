@@ -13,8 +13,6 @@ on:
         type: string
         required: true
     secrets:
-      #region:
-        #required: true
       github_pat:
         required: true
       
@@ -44,7 +42,6 @@ jobs:
         shell: bash
         run: |
           echo "Git setup"
-          pwd
           git config --global user.name 'Tereza'
           git config --global user.email 'bisharyant@gmail.com'    
 
@@ -63,21 +60,15 @@ jobs:
         run: |
           terraform init
           terraform plan
-          #terraform apply --auto-approve | tail -n 11 >> out.txt
           terraform apply --auto-approve
-          #echo "error-out=$(head -n 1 out.txt)" >> $GITHUB_OUTPUT
 
       - name: Inject api-url in appropriate file
         if: ${{ inputs.app_unit == 'client' }}
         run: |
           aws elb describe-load-balancers > out.json
           cat out.json
-          
           export API_URL=$(jq -r '.[] | .[] | .DNSName' out.json)
-          envsubst < index.htm > index.html
-          ls -lah
-          echo api-url is $API_URL
-          cat index.html    
+          envsubst < index.htm > index.html    
 
       - name: Get short SHA
         run: |
