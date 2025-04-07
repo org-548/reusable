@@ -24,11 +24,11 @@ jobs:
 
     steps:
       - name: Checkout primary repo for server unit
-        if: ${{ inputs.app_unit }} != "client"
+        if: ${{ inputs.app_unit != 'client' }}
         uses: actions/checkout@v4
 
       - name: Checkout primary repo for client unit
-        if: ${{ inputs.app_unit }} == "client"
+        if: ${{ inputs.app_unit == 'client' }}
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.client_payload.sha }}    
@@ -75,7 +75,7 @@ jobs:
           #terraform apply --auto-approve
 
       - name: Inject api-url in appropriate file
-        if: ${{ inputs.app_unit }} == "client"
+        if: ${{ inputs.app_unit == 'client' }}
         run: |
           aws eks update-kubeconfig --name first-eks --region eu-north-1
           kubectl get ingress -n somens | awk '$2 == "nginx" {print $4}' > lb-value.out
