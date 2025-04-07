@@ -60,7 +60,6 @@ jobs:
       - name: Apply Terraform infrastructure
         id: get-output
         working-directory: infra/terraform
-        #continue-on-error: true
         run: |
           terraform init
           terraform plan
@@ -68,22 +67,13 @@ jobs:
           terraform apply --auto-approve
           #echo "error-out=$(head -n 1 out.txt)" >> $GITHUB_OUTPUT
 
-      #- name: Reapply terraform code
-        #working-directory: infra/terraform
-        #if: contains("${{ steps.get-output.outputs.error-out}}", 'Not enough list items')
-        #run: |
-          #terraform apply --auto-approve
-
       - name: Inject api-url in appropriate file
         if: ${{ inputs.app_unit == 'client' }}
         run: |
-          aws eks update-kubeconfig --name first-eks --region eu-north-1
-          kubectl get ingress -n somens
-          kubectl get ingress -n somens | awk '$2 == "nginx" {print $4}'
-          kubectl get ingress -n somens | awk '$2 == "nginx" {print $4}' > lb-value.out
-          cat lb-value.out
+          aws elb describe-load-balancers > out.json
+          cat out.json
           
-          export API_URL="$(cat lb-value.out)"
+          export API_URL=$(jq -r '.[] | .[] | .DNSName' out.json)
           envsubst < index.htm > index.html
           ls -lah
           echo api-url is $API_URL
