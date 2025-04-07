@@ -62,6 +62,7 @@ jobs:
         working-directory: infra/charts
         run: |
           helmwave up --build --kubedog | tail -n 6 >> helmwave.out
+          kubectl get ingress -n somens
           diff helmwave.out error.txt
           if [[ $? -eq 0 ]]; then
             echo "Expected temporary error: Continue >>>"
