@@ -5,8 +5,8 @@ on:
     secrets:
       github_pat:
         required: true
-      region:
-        required: true  
+      #region:
+        #required: true  
       
 jobs:
   Apply-kubernetes-stack:
@@ -35,7 +35,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::637423489195:role/role-for-github-oidc
-          aws-region: ${{ secrets.region }}
+          aws-region: eu-north-1
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
@@ -44,7 +44,7 @@ jobs:
         id: install    
           
       - name: Udpate kubeconfig
-        run: aws eks update-kubeconfig --region ${{ secrets.region }} --name first-eks
+        run: aws eks update-kubeconfig --region eu-north-1 --name first-eks
 
       - name: Ingress controller deployment
         run: |
