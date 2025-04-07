@@ -78,7 +78,11 @@ jobs:
         if: ${{ inputs.app_unit == 'client' }}
         run: |
           aws eks update-kubeconfig --name first-eks --region eu-north-1
+          kubectl get ingress -n somens
+          kubectl get ingress -n somens | awk '$2 == "nginx" {print $4}'
           kubectl get ingress -n somens | awk '$2 == "nginx" {print $4}' > lb-value.out
+          cat lb-value.out
+          
           export API_URL="$(cat lb-value.out)"
           envsubst < index.htm > index.html
           ls -lah
