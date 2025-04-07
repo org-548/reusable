@@ -3,6 +3,9 @@ name: ECR build-push and applying tf-stack
 on: 
   workflow_call:
     inputs:
+      app_unit:
+        type: string
+        required: true
       ecr-repo-name:
         type: string
         required: true
@@ -24,6 +27,9 @@ jobs:
       #contents: read
 
     steps:
+      - name: Debug
+        if: ${{ inputs.app_unit }} == client
+        run: echo "App-unit is client"
       - name: Checkout primary repo
         uses: actions/checkout@v4
 
@@ -37,6 +43,7 @@ jobs:
       - name: Git Setup  
         shell: bash
         run: |
+          exit 1
           echo "Git setup"
           pwd
           git config --global user.name 'Tereza'
@@ -67,8 +74,21 @@ jobs:
         run: |
           terraform apply --auto-approve
 
+      - name: Inject api-url in appropriate file
+        if: ${{ inputs.app_unit }} == "client"
+        run: |
+          aws eks update-kubeconfig --name first-eks --region eu-north-1
+          kubectl get ingress -n somens | awk '$2 == "nginx" {print $4}' > lb-value.out
+          export API_URL="$(cat lb-value.out)"
+          envsubst < index.htm > index.html
+          ls -lah
+          echo api-url is $API_URL
+          cat index.html    
+
       - name: Get short SHA
-        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV  
+        run: |
+          echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-7`" >> $GITHUB_ENV
+          echo ${{ env.SHORT_SHA }}
 
       - name: Login to Amazon ECR
         id: ecr-login
@@ -80,6 +100,7 @@ jobs:
           REPOSITORY: ${{ inputs.ecr-repo-name }}
           IMAGE_TAG: ${{ env.SHORT_SHA }}
         run: |
+          echo ${{ env.SHORT_SHA }}
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG  
 
@@ -89,7 +110,7 @@ jobs:
           echo ${{ env.SHORT_SHA }}
           sed -E -i'' "s/(.*tag: ).*/\1${{ env.SHORT_SHA }}/" '${{ inputs.values-file }}'
 
-      - name: Commit and push changes without trigger
+      - name: Commit and push changes
         shell: bash
         working-directory: infra/charts/values
         env:
