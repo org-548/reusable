@@ -13,8 +13,8 @@ on:
         type: string
         required: true
     secrets:
-      region:
-        required: true
+      #region:
+        #required: true
       github_pat:
         required: true
       
@@ -55,7 +55,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::637423489195:role/role-for-github-oidc
-          aws-region: ${{ secrets.region }}
+          aws-region: eu-north-1
 
       - name: Apply Terraform infrastructure
         id: get-output
