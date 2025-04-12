@@ -96,11 +96,11 @@ jobs:
           rm index.html    
 
       - name: Update tag in appropriate values.yaml file
-        working-directory: infra/charts/values
+        working-directory: infra/charts
         run: |
           echo ${{ env.SHORT_SHA }}
-          if [[ $(yq eval .deploy.image.tag ${{ inputs.values-file }}) -ne "${{ env.GITHUB_SHA }}" ]]; then
-            sed -E -i'' "s/(.*tag: ).*/\1${{ env.SHORT_SHA }}/" '${{ inputs.values-file }}'
+          if [[ $(yq eval .deploy.image.tag ./app/templates/deployment.yaml) -ne "${{ env.GITHUB_SHA }}" ]]; then
+            sed -E -i'' "s/(.*: ).*/\1${{ env.SHORT_SHA }}/" './app/templates/deployment.yaml'
           fi
           cat srv-values.yaml
           cat fnt-values.yaml
