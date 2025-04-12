@@ -106,7 +106,7 @@ jobs:
 
       - name: Commit and push changes
         shell: bash
-        working-directory: infra/charts/values
+        working-directory: infra/charts/app/templates
         env:
           GITHUB_TOKEN: ${{ secrets.github_pat }}
           COMMIT_MESSAGE: "Update image-tag with ${{ env.SHORT_SHA }}"
