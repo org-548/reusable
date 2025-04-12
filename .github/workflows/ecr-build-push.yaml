@@ -99,7 +99,7 @@ jobs:
         working-directory: infra/charts/values
         run: |
           echo ${{ env.SHORT_SHA }}
-          if [[ $(yq eval .deploy.image.tag ${{ inputs.values-file }}) -ne ${{ env.GITHUB_SHA }} ]]; then
+          if [[ $(yq eval .deploy.image.tag ${{ inputs.values-file }}) -ne "${{ env.GITHUB_SHA }}" ]]; then
             sed -E -i'' "s/(.*tag: ).*/\1${{ env.SHORT_SHA }}/" '${{ inputs.values-file }}'
           fi
           cat srv-values.yaml
