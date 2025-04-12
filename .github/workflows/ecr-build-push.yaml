@@ -72,7 +72,7 @@ jobs:
 
       - name: Get short SHA
         run: |
-          echo "SHORT_SHA=`echo ${{ github.event.before }} | cut -c1-7`" >> $GITHUB_ENV
+          echo "SHORT_SHA=`echo ${{ github.event.before }}" >> $GITHUB_ENV
           echo ${{ env.SHORT_SHA }}
 
       - name: Login to Amazon ECR
