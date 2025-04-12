@@ -100,10 +100,9 @@ jobs:
         run: |
           echo ${{ env.SHORT_SHA }}
           if [[ $(yq eval .deploy.image.tag ./app/templates/deployment.yaml) -ne "${{ env.GITHUB_SHA }}" ]]; then
-            sed -E -i'' "s/(.*: ).*/\1${{ env.SHORT_SHA }}/" './app/templates/deployment.yaml'
+            sed -E -i'' "s/(image*: ).*/\1${{ env.SHORT_SHA }}/" './app/templates/deployment.yaml'
           fi
-          cat srv-values.yaml
-          cat fnt-values.yaml
+          
 
       - name: Commit and push changes
         shell: bash
