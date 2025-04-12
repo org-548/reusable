@@ -2,6 +2,10 @@ name: App deploymnet with Kubernetes
 
 on: 
   workflow_call:
+    inputs:
+      app_unit:
+        type: string
+        required: true
     secrets:
       github_pat:
         required: true 
@@ -11,8 +15,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout primary repo
+      - name: Checkout primary repo for server unit
+        if: ${{ inputs.app_unit != 'client' }}
         uses: actions/checkout@v4
+
+      - name: Checkout primary repo for client unit
+        if: ${{ inputs.app_unit == 'client' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.client_payload.sha }}
 
       - name: Checkout target repo
         uses: actions/checkout@v4
