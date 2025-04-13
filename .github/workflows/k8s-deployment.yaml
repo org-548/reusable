@@ -32,7 +32,7 @@ jobs:
           path: infra
           token: ${{ secrets.github_pat }}
           
-      - name: Git Setup  
+      - name: Setup Git
         shell: bash
         run: |
           echo "Git setup"
