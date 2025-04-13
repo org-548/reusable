@@ -38,7 +38,7 @@ jobs:
           path: infra
           token: ${{ secrets.github_pat }}
 
-      - name: Git Setup  
+      - name: Setup Git 
         shell: bash
         run: |
           echo "Git setup"
@@ -66,14 +66,12 @@ jobs:
         if: ${{ inputs.app_unit == 'client' }}
         run: |
           aws elb describe-load-balancers > out.json
-          cat out.json
           export API_URL=$(jq -r '.[] | .[] | .DNSName' out.json)
           envsubst < index.htm > index.html    
 
       - name: Get short SHA
         run: |
           echo "SHORT_SHA=${GITHUB_SHA}" >> $GITHUB_ENV
-          echo ${{ env.SHORT_SHA }}
 
       - name: Login to Amazon ECR
         id: ecr-login
@@ -103,7 +101,6 @@ jobs:
             sed -E -i'' "s/(.*tag: ).*/\1${{ env.SHORT_SHA }}/" '${{ inputs.values-file }}'
           fi
           
-
       - name: Commit and push changes
         shell: bash
         working-directory: infra/charts/values
