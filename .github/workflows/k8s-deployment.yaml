@@ -68,6 +68,12 @@ jobs:
         id: get-hw-output
         continue-on-error: true
         working-directory: infra/charts
-        run: helmwave up --build --kubedog
+        run: |
+          helmwave up --build --yml --kubedog | tail -n 5 >> helmwave.out
+          diff helmwave.out error.txt
+          if [[ $? -eq 0 ]]; then
+            echo "Expected temporary error during the first helmwave-build: Continue >>>"
+          else
+            exit 1
+        
             
-      
