@@ -66,6 +66,7 @@ jobs:
 
       - name: Helmwave build/up
         id: get-hw-output
+        continue-on-error: true
         working-directory: infra/charts
         run: helmwave up --build --kubedog
             
