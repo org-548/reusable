@@ -1,4 +1,4 @@
-name: App deploymnet with Kubernetes
+name: App deployment with Kubernetes
 
 on: 
   workflow_call:
@@ -42,14 +42,13 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::637423489195:role/role-for-github-oidc
+          role-to-assume: arn:aws:iam::637423489195:role/${{ vars.OIDC_ROLE_NAME }}
           aws-region: eu-north-1
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
         with:
           version: 'v1.32.3'
-        id: install    
           
       - name: Udpate kubeconfig
         run: aws eks update-kubeconfig --region eu-north-1 --name first-eks
