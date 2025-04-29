@@ -20,6 +20,7 @@ jobs:
   Apply-tf-infrastructure:
     name: Tf-stack
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout primary repo for server unit
         if: ${{ inputs.app_unit != 'client' }}
@@ -51,7 +52,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::637423489195:role/role-for-github-oidc
+          role-to-assume: arn:aws:iam::637423489195:role/${{ vars.OIDC_ROLE_NAME }}
           aws-region: eu-north-1
 
       - name: Apply Terraform infrastructure
