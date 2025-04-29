@@ -17,9 +17,24 @@ on:
         required: true
       
 jobs:
+  Apply-cfn-stack:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          repository: org-548/infra
+          path: infra
+          token: ${{ secrets.github_pat }}
+
+      - name: Up cloudformation stack
+        working-directory: infra
+        run: |
+          aws cloudformation create-stack --stack-name gthub-oidc-conf \
+            --capabilities CAPABILITY_NAMED_IAM --template-body file://cfn-template.yaml
+  
   Apply-tf-infrastructure:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout primary repo for server unit
         if: ${{ inputs.app_unit != 'client' }}
