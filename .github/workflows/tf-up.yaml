@@ -1,4 +1,4 @@
-name: ECR build-push and applying tf-stack
+name: ECR build-push
 
 on: 
   workflow_call:
@@ -17,51 +17,26 @@ on:
         required: true
       
 jobs:
-  Apply-tf-infrastructure:
-    name: Tf-stack
+  ECR-build-push:
+    name: first-workflow
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout primary repo for server unit
-        if: ${{ inputs.app_unit != 'client' }}
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Checkout primary repo for client unit
-        if: ${{ inputs.app_unit == 'client' }}
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.client_payload.sha }}    
-
-      - name: Checkout target repo
-        uses: actions/checkout@v4
-        with:
-          repository: org-548/infra
-          path: infra
-          token: ${{ secrets.github_pat }}
 
       - name: Setup Git 
         shell: bash
         run: |
           echo "Git setup"
           git config --global user.name 'Tereza'
-          git config --global user.email 'bisharyant@gmail.com'    
-
-      - name: Setup Terraform CLI
-        uses: hashicorp/setup-terraform@v3
+          git config --global user.email 'bisharyant@gmail.com'
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::637423489195:role/${{ vars.OIDC_ROLE_NAME }}
           aws-region: eu-north-1
-
-      - name: Apply Terraform infrastructure
-        id: get-output
-        working-directory: infra/terraform
-        run: |
-          terraform init
-          terraform plan
-          terraform apply --auto-approve
 
       - name: Inject api-url in appropriate file
         if: ${{ inputs.app_unit == 'client' }}
@@ -88,18 +63,19 @@ jobs:
           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
 
-      - name: Unset variable value and delete .html file
-        if: ${{ inputs.app_unit == 'client' }}
-        run: |
-          unset API_URL
-          rm index.html    
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          repository: org-548/infra
+          path: infra
+          token: ${{ secrets.github_pat }}    
 
       - name: Update tag in appropriate values.yaml file
         working-directory: infra/charts/values
         run: |
           echo ${{ env.SHORT_SHA }}
-          if [[ "$(yq eval .deploy.image.tag ${{ inputs.values-file }})" != "${{ env.SHORT_SHA }}" ]]; then
-            sed -E -i'' "s/(.*tag: ).*/\1${{ env.SHORT_SHA }}/" '${{ inputs.values-file }}'
+          if [[ "$(yq eval .deploy.image.tag ${{ vars.values_file }})" != "${{ env.SHORT_SHA }}" ]]; then
+            sed -E -i'' "s/(.*tag: ).*/\1${{ env.SHORT_SHA }}/" '${{ vars.values_file }}'
           fi
           
       - name: Commit and push changes
